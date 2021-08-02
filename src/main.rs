@@ -17,11 +17,26 @@ fn main() {
         "help" => {
             eprintln!("{}", get_help(&exe_name));
         }
+
         "translate" => {
-            let mut input = args.collect::<Vec<String>>().join(" ");
-            input.truncate(input.trim_end().len());
-            translate_input(&input.non_empty().unwrap_or_else(|| ask("text to translate:")));
+            if let Some(input) = args
+                .collect::<Vec<String>>()
+                .join(" ")
+                .with_end_trimmed()
+                .non_empty()
+            {
+                translate_input(&input);
+                return;
+            }
+
+            loop {
+                let input = ask_multi_lines(">");
+                if input.is_empty() { break; }
+
+                translate_input(&input);
+            }
         }
+
         subcmd => {
             eprintln!("unknown arg '{}'", subcmd);
         }
@@ -55,7 +70,10 @@ fn get_help(exe_name: &str) -> String {
 fn parse_and_translate(input: &str) -> Result<String, String> {
     let chars_to_english = {
         let mut pairs: Vec<(&str, char)> = vec![
+            // Whitespace
             (" ", ' '),
+            ("\n", '\n'),
+            // Known
             ("r", 'A'),
             ("_|_", 'E'),
             ("^v", 'G'),
