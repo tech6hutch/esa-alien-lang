@@ -1,5 +1,6 @@
 mod util;
 
+use ansi_term::{ANSIString, ANSIStrings, Color};
 use std::{env, path::Path};
 use util::*;
 
@@ -58,7 +59,7 @@ fn translate_input(input: &str) {
         }
     };
     if output.contains('_') {
-        println!("[Some alien letters in this message have yet to be deciphered.]");
+        println!("{}", Color::Red.paint("[Some alien letters in this message have yet to be deciphered.]"));
     }
     println!("{}", output);
 }
@@ -69,51 +70,54 @@ fn get_help(exe_name: &str) -> String {
 
 fn parse_and_translate(input: &str) -> Result<String, String> {
     let chars_to_english = {
-        let mut pairs: Vec<(&str, char)> = vec![
+        use Color::{White, Red, Yellow};
+
+        let mut pairs: Vec<(&str, char, Color)> = vec![
             // Whitespace
-            (" ", ' '),
-            ("\n", '\n'),
+            (" ", ' ', White),
+            ("\n", '\n', White),
             // Known
-            ("r", 'A'),
-            ("_|_", 'E'),
-            ("^v", 'G'),
-            (":.", 'H'),
-            ("|", 'I'),
-            ("`|", 'L'),
-            ("n", 'N'),
-            ("`o", 'R'),
-            ("d", 'T'),
-            ("+", 'U'),
-            ("S", 'W'),
+            ("r", 'A', White),
+            ("_|_", 'E', White),
+            ("^v", 'G', White),
+            (":.", 'H', White),
+            ("|", 'I', White),
+            ("`|", 'L', White),
+            ("n", 'N', White),
+            ("`o", 'R', White),
+            ("d", 'T', White),
+            ("+", 'U', White),
+            ("S", 'W', White),
+            // Likely
+            ("o", 'B', Yellow),
+            ("t", 'C', Yellow),
+            ("?", 'D', Yellow),
+            ("^", 'F', Yellow),
+            ("y", 'K', Yellow),
+            ("H", 'M', Yellow),
+            ("ロ", 'O', Yellow),
+            ("ï", 'P', Yellow),
+            ("🚬", 'Q', Yellow),
+            ("|:", 'S', Yellow),
+            ("E", 'V', Yellow),
+            ("D", 'Y', Yellow),
             // Unknown
-            ("|:", '_'),
-            ("?", '_'),
-            ("ロ", '_'),
-            ("t", '_'),
-            ("H", '_'),
-            ("D", '_'),
-            ("o", '_'),
-            ("^", '_'),
-            ("E", '_'),
-            ("y", '_'),
-            ("ï", '_'),
-            (">", '_'),
-            ("🚬", '_'),
+            (">", '_', Red),
         ];
-        pairs.sort_unstable_by(|(a, _), (b, _)| b.len().cmp(&a.len()));
+        pairs.sort_unstable_by(|(a, _, _), (b, _, _)| b.len().cmp(&a.len()));
         pairs
     };
 
     let mut s = input;
-    let mut output = String::new();
+    let mut output: Vec<ANSIString> = Vec::new();
     while s.len() > 0 {
-        let (len, c) = chars_to_english.iter().copied()
-            .find_map(|(k, v)| s.starts_with(k).then(|| (k.len(), v)))
+        let (len, c, color) = chars_to_english.iter().copied()
+            .find_map(|(k, v, color)| s.starts_with(k).then(|| (k.len(), v, color)))
             .ok_or_else(|| format!(
                 "unknown char or char sequence starting at position {}", input.len() - s.len()
             ))?;
-        output.push(c);
+        output.push(color.paint(c.to_string()));
         s = &s[len..];
     }
-    Ok(output)
+    Ok(ANSIStrings(&output).to_string())
 }
